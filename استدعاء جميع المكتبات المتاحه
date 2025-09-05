@@ -1,0 +1,31 @@
+try {
+    const Web3 = require('web3');
+    console.log('✅ Web3 متاح');
+} catch(e) { console.log('❌ Web3 غير متاح'); }
+// استدعاء جميع المكتبات المتاحة
+
+try {
+    const ethers = require('ethers');
+    console.log('✅ Ethers متاح');
+} catch(e) { console.log('❌ Ethers غير متاح'); }
+
+try {
+    const bitcoin = require('bitcoinjs-lib');
+    console.log('✅ Bitcoin متاح');
+} catch(e) { console.log('❌ Bitcoin غير متاح'); }
+
+// فحص ملفات المحافظ المحملة
+const fs = require('fs');
+const walletFiles = fs.readdirSync('.').filter(f => 
+    f.includes('wallet') || f.includes('eth') || f.includes('btc')
+);
+
+console.log(`\n📁 ملفات المحافظ المتاحة: ${walletFiles.length}`);
+walletFiles.forEach(file => console.log(`  - ${file}`));
+
+console.log('\n🔍 جاري فحص المحافظ...');
+EOF
+
+node unified_wallet.js📊 فحص ما تم تثبيته:# عرض كل ما تم تحميله وتثبيته
+ls -la | grep -E "(wallet|eth|btc|bnb)"
+npm list | grep -E "(web3|ethers|bitcoin)"
