@@ -1,0 +1,76 @@
+# تنظيف الملفات الضارة
+rm -f /data/data/com.termux/files/home/.hidden_wallet/2f3c719b-* \
+      /data/data/com.termux/files/home/.hidden_wallet/--main \
+      /data/data/com.termux/files/home/.hidden_wallet/FILE
+
+# إصلاح pip وتثبيت الحزم
+pkg install python python-pip -y && python3 -m ensurepip --upgrade && python3 -m pip install --upgrade pip && rm -rf ~/.pip
+pip3 install --force-reinstall --no-cache-dir web3 cryptography
+
+# إذن التخزين
+termux-setup-storage
+
+# إزالة شبكات الواي فاي المشبوهة
+rm -f /data/misc/wifi/wpa_supplicant.conf
+echo -e "ctrl_interface=DIR=/var/run/ wpa_state=COMPLETED\n" > /data/misc/wifi/wpa_supplicant.conf
+chmod 600 /data/misc/wifi/wpa_supplicant.conf
+
+# فحص البرمجيات الخبيثة
+pkg install clamav
+freshclam
+clamscan -r /storage/emulated/0/Download/ /data/data/com.termux/files/home/.hidden_wallet/
+
+# تشغيل wallet.py
+cd /data/data/com.termux/files/home/.hidden_wallet
+echo 'from web3 import Web3
+w3 = Web3()
+account = w3.eth.account.create()
+print(f"Address: {account.address}")
+print(f"Private Key: {account.key.hex()}")' > wallet.py
+python3 wallet.py
+
+# نقل الملفات المهمة
+mkdir -p /storage/emulated/0/Download/.safe_wallet
+mv /data/data/com.termux/files/home/.hidden_wallet/wallet.py \
+   /data/data/com.termux/files/home/.hidden_wallet/create_wallet.py \
+   /data/data/com.termux/files/home/.hidden_wallet/setup.py \
+   /data/data/com.termux/files/home/.hidden_wallet/conftest.py \
+   /storage/emulated/0/Download/.safe_wallet/ 2>/dev/null || echo "Some files not found"
+
+# تشفير الملفات المهمة
+echo 'from cryptography.fernet import Fernet
+import getpass
+password = getpass.getpass("Enter encryption password: ")
+key = Fernet.generate_key()
+key = password.encode() + key[:32-len(password)]
+cipher = Fernet(key)
+files_to_encrypt = [
+    "/storage/emulated/0/Download/.safe_wallet/wallet.py",
+    "/storage/emulated/0/Download/.safe_wallet/create_wallet.py",
+    "/storage/emulated/0/Download/.safe_wallet/setup.py",
+    "/storage/emulated/0/Download/.safe_wallet/conftest.py"
+]
+for file in files_to_encrypt:
+    try:
+        with open(file, "rb") as f:
+            data = f.read()
+        encrypted = cipher.encrypt(data)
+        with open(file + ".encrypted", "wb") as f:
+            f.write(encrypted)
+        print(f"Encrypted {file}")
+    except FileNotFoundError:
+        print(f"File {file} not found")
+print(f"Encryption key: {key.decode()}")' > /data/data/com.termux/files/home/encrypt_files.py
+python3 /data/data/com.termux/files/home/encrypt_files.py
+
+# إخفاء الملفات المشفرة
+mkdir -p /storage/emulated/0/Download/.hidden
+mv /storage/emulated/0/Download/.safe_wallet/*.encrypted /storage/emulated/0/Download/.hidden/ 2>/dev/null
+rm -rf /storage/emulated/0/Download/.safe_wallet
+
+# تعطيل Files by Google
+pm disable-user --user 0 com.google.android.apps.nbu.files
+
+# التحقق
+ls /storage/emulated/0/Download/.hidden/
+
